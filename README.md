@@ -119,6 +119,7 @@ test/                     bun tests
 
 This is a first version. Before real money:
 
-- Test the LND adapter against a node on regtest or signet. The tests use only the fake backend.
+- Test the LND adapter against a node on regtest or signet. The tests use only the fake backend for LND.
+- The Bark adapter works on signet (barkd 0.7.1, 2026-10-14). Tests: a deposit, a withdrawal, and a withdrawal to a canceled invoice. The failed withdrawal stayed pending for about 2.5 minutes, then the reconciler refunded it. The tests in `test/bark.test.ts` use a mock barkd.
 - Add rate limits for account and deposit requests.
 - Get legal advice. Real-money gambling needs a license in most jurisdictions.
