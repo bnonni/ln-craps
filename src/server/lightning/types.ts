@@ -41,6 +41,9 @@ export interface LightningBackend {
   decodeInvoice(bolt11: string): Promise<DecodedInvoice>;
   /** Must not throw for a payment failure. Throw only if the result is unknown. */
   payInvoice(request: PayRequest): Promise<PaymentStatus>;
-  /** Returns "failed" only if the node is certain that it did not and will not send the payment. */
-  lookupPayment(paymentHash: string): Promise<PaymentStatus>;
+  /**
+   * Returns "failed" only if the node is certain that it did not and will not send the payment.
+   * `bolt11` is the invoice of the payment. A backend can use it to find the fee.
+   */
+  lookupPayment(paymentHash: string, bolt11: string): Promise<PaymentStatus>;
 }

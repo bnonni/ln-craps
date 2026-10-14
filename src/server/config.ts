@@ -9,12 +9,16 @@ const int = (name: string, fallback: number): number => {
 export interface Config {
   port: number;
   databasePath: string;
-  /** "fake" or "lnd" */
+  /** "fake", "lnd", or "bark" */
   lnBackend: string;
   lnd: {
     restUrl: string;
     macaroonPath: string;
     tlsCertPath: string;
+  };
+  bark: {
+    url: string;
+    token: string;
   };
   minBet: number;
   maxBet: number;
@@ -38,6 +42,10 @@ export function loadConfig(): Config {
       restUrl: process.env.LND_REST_URL ?? "https://127.0.0.1:8080",
       macaroonPath: process.env.LND_MACAROON_PATH ?? "",
       tlsCertPath: process.env.LND_TLS_CERT_PATH ?? "",
+    },
+    bark: {
+      url: process.env.BARKD_URL ?? "http://127.0.0.1:3000",
+      token: process.env.BARKD_TOKEN ?? "",
     },
     minBet: int("MIN_BET", 1),
     maxBet: int("MAX_BET", 100_000),

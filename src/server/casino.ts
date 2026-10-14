@@ -465,12 +465,12 @@ export class Casino {
   /** Find the result of each old pending withdrawal, for example after a restart. */
   async syncWithdrawals(minAgeMs = WITHDRAWAL_RECONCILE_AGE_MS): Promise<void> {
     const rows = this.db
-      .query("SELECT payment_hash FROM withdrawals WHERE state = 'pending' AND created_at <= $before")
-      .all({ before: Date.now() - minAgeMs }) as { payment_hash: string }[];
-    for (const { payment_hash } of rows) {
+      .query("SELECT payment_hash, bolt11 FROM withdrawals WHERE state = 'pending' AND created_at <= $before")
+      .all({ before: Date.now() - minAgeMs }) as { payment_hash: string; bolt11: string }[];
+    for (const { payment_hash, bolt11 } of rows) {
       if (this.inFlight.has(payment_hash)) continue;
       try {
-        this.finishWithdrawal(payment_hash, await this.ln.lookupPayment(payment_hash));
+        this.finishWithdrawal(payment_hash, await this.ln.lookupPayment(payment_hash, bolt11));
       } catch (e) {
         console.error("[withdraw] lookup failed:", payment_hash, e);
       }

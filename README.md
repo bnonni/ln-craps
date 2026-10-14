@@ -73,10 +73,33 @@ Rules:
 2. Copy `.env.example` to `.env`.
 3. Set `LN_BACKEND=lnd`, `LND_REST_URL`, `LND_MACAROON_PATH`, and `LND_TLS_CERT_PATH`.
 
-Payment safety:
+## Lightning (Bark on signet)
+
+[Bark](https://second.tech) is a wallet for Lightning over Ark. It needs no Lightning node and no channels. `barkd` is its REST daemon.
+
+1. Download `barkd` 0.7.1 into `bin/` (gitignored). Instructions: https://second.tech/docs/barkd/install.md
+2. Start `barkd` with a data directory that git ignores: `./bin/barkd --datadir ./.wallet`. It listens on `127.0.0.1:3000`. Do not expose this port.
+3. Create a signet wallet one time:
+   ```sh
+   T=$(./bin/barkd --datadir ./.wallet secret show | tail -1)
+   curl -s -X POST localhost:3000/api/v1/wallet/create -H "Authorization: Bearer $T" -H 'content-type: application/json' \
+     -d '{"network":"signet","ark_server":"https://ark.signet.2nd.dev","chain_source":{"esplora":{"url":"https://esplora.signet.2nd.dev"}}}' >/dev/null
+   ```
+4. In `.env`, set `LN_BACKEND=bark`, `BARKD_TOKEN` (the value of `$T`), `PORT=8787`, and `WITHDRAWAL_FEE_BASE=20`.
+5. Run `bun run build`, then `bun run start`.
+
+Deposits need no funds in the wallet. Withdrawals pay from the wallet balance. To get signet sats, use the faucet at https://signet.2nd.dev/ (GitHub login).
+
+Notes:
+
+- `barkd` sets the invoice expiry. A deposit uses the expiry in the invoice, not `DEPOSIT_EXPIRY_SECONDS`.
+- `barkd` has no fee limit for a payment. Before a withdrawal starts, the adapter gets a fee estimate. If the estimate is more than the fee reserve, the withdrawal fails and no payment starts.
+- `barkd` keeps a record of each paid send. If `barkd` has no record of a payment, the payment did not start, or it failed and the wallet got the funds back. Then the casino refunds the player. Thus, do not replace the `barkd` wallet while a withdrawal is pending.
+
+## Payment safety
 
 - A withdrawal takes the amount plus a fee reserve from the balance before the payment starts. After the payment, the server returns the unused part of the reserve.
-- If the result of a payment is unknown (for example, a timeout or a restart), the funds stay reserved. A reconciler asks LND every 15 seconds. It refunds only if LND reports that the payment failed or that LND never started it.
+- If the result of a payment is unknown (for example, a timeout or a restart), the funds stay reserved. A reconciler asks the Lightning backend every 15 seconds. It refunds only if the backend reports that the payment failed or that it never started the payment.
 - An account can have only one pending withdrawal.
 
 ## Layout
@@ -87,7 +110,7 @@ src/shared/fair.ts        provably fair dice (Web Crypto, used to verify in the 
 src/shared/api.ts         HTTP API types
 src/server/casino.ts      balances, rolls, deposits, withdrawals (SQLite transactions)
 src/server/app.ts         Hono routes
-src/server/lightning/     LightningBackend interface, fake backend, LND REST adapter
+src/server/lightning/     LightningBackend interface, fake backend, LND and barkd REST adapters, BOLT11 decoder
 src/web/                  React UI (Vite)
 test/                     bun tests
 ```
